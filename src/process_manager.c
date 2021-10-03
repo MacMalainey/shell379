@@ -9,7 +9,7 @@
 #include <sys/resource.h>
 
 #define PS_FIND "ps -p %u -o times="
-#define PS_FIND_LEN sizeof(PS_FIND) + 3
+#define PS_FIND_LEN sizeof(PS_FIND) + 10
 #define CMD_DEBUG_TEMPLATE "Command Recognized: %s\n"
 
 struct p_table_entry {
@@ -31,7 +31,7 @@ void remove_process(pid_t pid)
     {
         if (found)
         {
-            memcpy(&(process_table[processes - 1]), &(process_table[processes]), sizeof(process_t));
+            memcpy(&(process_table[i - 1]), &(process_table[i]), sizeof(process_t));
         }
         else if (pid == process_table[i].pid)
         {
@@ -118,32 +118,10 @@ void spawn_process(command_t* cmd)
 }
 
 /**
- * Print out information for all running jobs
+ * Prints completed processes resource usage
  */
-void get_jobs()
+void print_rusage(void)
 {
-    printf("Running processes:\n");
-    if (processes > 0)
-    {
-        printf(" #    PID S SEC COMMAND\n");
-        for (size_t i = 0; i < processes; i++)
-        {
-            char psfind[PS_FIND_LEN];
-            unsigned int pid;
-
-            sprintf(psfind, PS_FIND, process_table[i].pid);
-            dbprintf("Finding time using %s\n", psfind);
-
-            FILE* pspipe = popen(psfind, "r");
-            fscanf(pspipe, "%u", &pid);
-            pclose(pspipe);
-
-            printf("%2lu: %5u %c %3u %s", i, process_table[i].pid, process_table[i].running ? 'R': 'S', pid, process_table[i].cmd);
-        }
-    }
-    printf("Processes = %6ld active\n", processes);
-    printf("Completed processes:\n");
-
     struct rusage resources;
     if (getrusage(RUSAGE_CHILDREN, &resources) == -1)
     {
@@ -152,6 +130,39 @@ void get_jobs()
 
     printf("User time = %6ld seconds\n", resources.ru_utime.tv_sec);
     printf("Sys  time = %6ld seconds\n", resources.ru_stime.tv_sec);
+}
+
+/**
+ * Print out information for all running jobs
+ */
+void get_jobs()
+{
+    printf("Running processes:\n");
+    if (processes > 0)
+    {
+        printf(" #      PID S SEC COMMAND\n");
+        for (size_t i = 0; i < processes; i++)
+        {
+            dbprintf("Made it to the first iteration");
+
+            char psfind[PS_FIND_LEN];
+            unsigned int rtime;
+            dbprintf("Allocated stuff");
+
+            sprintf(psfind, PS_FIND, process_table[i].pid);
+            dbprintf("Finding time using %s\n", psfind);
+
+            FILE* pspipe = popen(psfind, "r");
+            fscanf(pspipe, "%u", &rtime);
+            pclose(pspipe);
+            dbprintf("Got rtime %u\n", rtime);
+
+            printf("%2lu: %7u %c %3u %s", i, process_table[i].pid, process_table[i].running ? 'R': 'S', rtime, process_table[i].cmd);
+        }
+    }
+    printf("Processes = %6ld active\n", processes);
+    printf("Completed processes:\n");
+    print_rusage();
 }
 
 /**
@@ -244,6 +255,8 @@ void run_command(command_t* cmd)
     {
         dbprintf(CMD_DEBUG_TEMPLATE, "exit");
         wait_on_all_jobs();
+        printf("Resources used\n");
+        print_rusage();
         _Exit(0);
     }
     else if (strcmp(cmd->cmd, "wait") == 0)

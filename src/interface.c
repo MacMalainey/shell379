@@ -9,7 +9,7 @@
 /**
  * Prompt the user
  */
-void prompt_user() {
+void prompt_user(void) {
     printf(PROMPT_TEXT);
 }
 
