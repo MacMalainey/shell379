@@ -4,30 +4,40 @@
 #include <string.h>
 
 #define PROMPT_TEXT "SHELL379: "
-#define DELIM " \r\n"
+#define DELIM " \n"
 
+/**
+ * Prompt the user
+ */
 void prompt_user() {
     printf(PROMPT_TEXT);
 }
 
 /**
- * 
+ * Parse a string to get a command out of it
  */
 void parse_cmd(char* input, command_t* cmd) {
-    char *found = strtok(input, DELIM);
-    char arg = 0;
+    // Copy input
+    strcpy(cmd->input, input);
 
-    dprintf("Recieved: %s\n", input);
+    // Begin parsing the line by whitespace
+    char *found = strtok(input, DELIM);
+    size_t arg = 0;
+
+    dbprintf("Recieved: %s\n", input);
 
     if (found != NULL) {
-        // Parse cmd
+        // Copy the command
         strcpy(cmd->cmd, found);
 
+        // Copy the command to the first spot in the argument list
         cmd->argv[arg] = malloc(MAX_ARG_LENGTH + 1);
         strcpy(cmd->argv[arg], found);
 
+        // Initialize special flages
         cmd->redir_in = false;
         cmd->redir_out = false;
+        cmd->background = false;
 
         dbprintf("Parsed command:\n");
         dbprintf("cmd: %s\n", cmd->cmd);
@@ -35,17 +45,21 @@ void parse_cmd(char* input, command_t* cmd) {
 
         // Begin getting arguments
         found = strtok(NULL, DELIM);
-        while (found != NULL && arg < MAX_ARGS) {
-            
-
-            // Check i/o redirect flags
-            if (found[0] == '>') {
+        while (found != NULL && arg < MAX_ARGS)
+        {
+            // Check i/o redirect flags, if none handle normally
+            if (found[0] == '>') // Output
+            {
                 strcpy(cmd->target_out, found + 1);
                 cmd->redir_out = true;
-            } else if (found[0] == '<') {
+            }
+            else if (found[0] == '<') // Input
+            {
                 strcpy(cmd->target_in, found + 1);
                 cmd->redir_in = true;
-            } else {
+            }
+            else // Regular argument
+            {
                 cmd->argv[++arg] = malloc(MAX_ARG_LENGTH + 1);
                 strcpy(cmd->argv[arg], found);
                 dlprintf("%s, ", cmd->argv[arg]);
@@ -61,9 +75,11 @@ void parse_cmd(char* input, command_t* cmd) {
             arg--;
         }
 
+        // Execv expects a NULL terminated char* array
         cmd->argv[++arg] = NULL;
         dlprintf("{NULL}\n");
 
+        // Debug purposes only
         if (cmd->redir_in)
         {
             dbprintf("target_in: %s\n", cmd->target_in);
@@ -75,14 +91,16 @@ void parse_cmd(char* input, command_t* cmd) {
         dbprintf("background: %d\n", cmd->background);
 
     }
-    return cmd;
 }
 
+/**
+ * See header file for documentation
+ */
 void wait_for_cmd(command_t* output) {
     prompt_user();
 
     char input[MAX_LINE_LENGTH];
-    fgets(input, sizeof input, stdin);
+    fgets(input, MAX_LINE_LENGTH, stdin);
 
     parse_cmd(input, output);
 }

@@ -1,8 +1,6 @@
 #include "types.h"
 
 /**
- * Interface constants
+ * Run the command with the given instructions
  */
-#define MAX_PT_ENTRIES   32
-
 void run_command(command_t* cmd);

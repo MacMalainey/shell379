@@ -1,6 +1,6 @@
 # Compiler options
 CC     := gcc
-CFLAGS := -Wall -O2
+CFLAGS := -Wall -Wno-unused-result -O2
 
 # Path options
 BUILD_DIR := build
@@ -31,10 +31,10 @@ $(OBJS): $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 compile: $(OBJS)
 
 link: $(OBJS)
-	$(CC) $(CFLAGS) -o $(EXECUTABLE) $(OBJS)
+	$(CC) -o $(EXECUTABLE) $(OBJS)
 
-debug: CFLAGS += -DDEBUG
-debug: link;
+debug: CFLAGS += -DDEBUG -g
+debug: compile link;
 
 clean:
 	rm $(EXECUTABLE) $(ARCHIVE) $(BUILD_DIR)/ -R
